@@ -2,10 +2,40 @@ import React, { useState, useEffect } from "react";
 
 const CELL_SIZE = 40; // pixels
 
+const BACKEND_BASE = `${window.location.hostname}:8000`;
+
 export default function GridBoard() {
   // In reality you'll fetch these from backend
   const [gridSize, setGridSize] = useState({ width: 14, height: 14 });
   const [obj, setObj] = useState(null);
+  const [ws, setWs] = useState(null);
+
+  useEffect(() => {
+    const socket = new WebSocket(`ws://${BACKEND_BASE}/ws_test`);
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      // print the data
+      console.log(data);
+
+      if (data.type === "init" || data.type === "update") {
+        setObj(data.location);
+      }
+    };
+
+    setWs(socket);
+
+    return () => {
+      socket.close();
+    };
+  }, []);
+
+  const moveCircle = (x, y) => {
+    if (ws) {
+      ws.send(JSON.stringify({ type: "move", x, y }));
+    }
+  };
 
   return (
     <div
@@ -36,7 +66,7 @@ export default function GridBoard() {
                 gridColumnStart: x + 1,
                 cursor: "pointer",
               }}
-              onClick={() => setObj({ x, y })}
+              onClick={() => moveCircle( x, y )}
             />
           );
         })}
